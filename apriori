@@ -1,0 +1,82 @@
+from itertools import combinations
+
+# Function to generate candidate itemsets of size k from frequent itemsets of size k-1
+def generate_candidates(prev_frequent_itemsets, k):
+    candidates = set()
+    prev_frequent_itemsets = list(prev_frequent_itemsets)
+    
+    # Generate combinations of previous frequent itemsets to create new candidates
+    for i in range(len(prev_frequent_itemsets)):
+        for j in range(i + 1, len(prev_frequent_itemsets)):
+            # Take the union of two itemsets if they share k-2 items
+            candidate = prev_frequent_itemsets[i] | prev_frequent_itemsets[j]
+            if len(candidate) == k:
+                candidates.add(candidate)
+    
+    return candidates
+
+# Function to filter candidate itemsets based on minimum support
+def filter_candidates(transactions, candidates, min_support):
+    itemset_counts = {}
+    
+    # Count occurrences of each candidate itemset in the transactions
+    for transaction in transactions:
+        for candidate in candidates:
+            if candidate.issubset(transaction):
+                itemset_counts[candidate] = itemset_counts.get(candidate, 0) + 1
+    
+    # Calculate support and filter by min_support
+    num_transactions = len(transactions)
+    frequent_itemsets = {
+        itemset for itemset, count in itemset_counts.items()
+        if count / num_transactions >= min_support
+    }
+    
+    return frequent_itemsets
+
+# Apriori algorithm implementation
+def apriori(transactions, min_support):
+    # Generate initial frequent 1-itemsets
+    single_items = {frozenset([item]) for transaction in transactions for item in transaction}
+    frequent_itemsets = filter_candidates(transactions, single_items, min_support)
+    all_frequent_itemsets = list(frequent_itemsets)
+    
+    k = 2  # Start with pairs
+    while frequent_itemsets:
+        # Generate next level candidate itemsets
+        candidates = generate_candidates(frequent_itemsets, k)
+        frequent_itemsets = filter_candidates(transactions, candidates, min_support)
+        all_frequent_itemsets.extend(frequent_itemsets)
+        k += 1
+    
+    return all_frequent_itemsets
+
+# Example dataset (list of transactions)
+transactions = [
+    {'milk', 'bread', 'butter'},
+    {'milk', 'bread'},
+    {'milk', 'butter'},
+    {'bread', 'butter'},
+    {'milk', 'bread', 'butter', 'cheese'},
+]
+
+# Display input dataset
+print("Input Transactions:")
+for i, transaction in enumerate(transactions, 1):
+    print(f"Transaction {i}: {transaction}")
+
+# Run Apriori algorithm with a minimum support of 0.6
+min_support = 0.6
+frequent_itemsets = apriori(transactions, min_support)
+
+# Print results
+print("\nFrequent itemsets:")
+for itemset in frequent_itemsets:
+    print(itemset)
+
+# Explanation:
+# 1. Generate frequent 1-itemsets.
+# 2. Iteratively generate candidate itemsets of increasing size.
+# 3. Filter itemsets based on the minimum support threshold.
+# 4. Stop when no more frequent itemsets can be generated.
+# 5. Display input transactions and the final frequent itemsets found.
